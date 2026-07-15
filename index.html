@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arrange the Sentence</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+    background:linear-gradient(#dff6ff,#fff8e8);
+    padding:20px;
+}
+
+.container{
+    max-width:1100px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+    color:#4d6fa9;
+    margin-bottom:15px;
+}
+
+.topBar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-bottom:15px;
+}
+
+.score{
+    background:#ffe9b5;
+    padding:10px 18px;
+    border-radius:30px;
+    font-size:20px;
+    font-weight:bold;
+}
+
+.feedback{
+    font-size:22px;
+    font-weight:bold;
+    color:#4d6fa9;
+}
+
+.wordBank{
+    position:relative;
+    height:260px;
+    border-radius:25px;
+    background:#ffffff;
+    border:4px solid #bfe7ff;
+    overflow:hidden;
+    margin-bottom:25px;
+    box-shadow:0 5px 12px rgba(0,0,0,.08);
+}
+
+.word{
+    position:absolute;
+    padding:10px 18px;
+    background:#ffd6e7;
+    border-radius:18px;
+    font-size:22px;
+    font-weight:bold;
+    border:2px solid white;
+    box-shadow:0 3px 6px rgba(0,0,0,.15);
+    white-space: nowrap;
+    pointer-events: none;
+    /* initial position to prevent flash */
+    left: -1000px; 
+    top: -1000px;
+}
+
+.word:nth-child(odd){
+    background:#d8f8d8;
+}
+
+.word:nth-child(3n){
+    background:#fff1b6;
+}
+
+.answerInput{
+    width: 100%;
+    min-height:70px;
+    background:#fff;
+    border:3px solid #9ed7ff;
+    border-radius:20px;
+    padding:15px 25px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #333;
+    outline: none;
+    box-shadow:0 5px 12px rgba(0,0,0,.08);
+    transition: border-color 0.2s;
+}
+
+.answerInput:focus{
+    border-color: #42a5f5;
+    box-shadow: 0 0 10px rgba(66, 165, 245, 0.3);
+}
+
+.buttons{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:15px;
+    margin-top:25px;
+}
+
+button{
+    padding:13px 26px;
+    font-size:18px;
+    border:none;
+    border-radius:40px;
+    cursor:pointer;
+    color:white;
+    transition:.2s;
+}
+
+button:hover{
+    transform:scale(1.05);
+}
+
+.check{
+    background:#66bb6a;
+}
+
+.reset{
+    background:#ff9800;
+}
+
+.next{
+    background:#42a5f5;
+}
+
+@media(max-width:700px){
+    .wordBank{
+        height:320px;
+    }
+    .word{
+        font-size:18px;
+    }
+    .answerInput{
+        font-size: 18px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📚 Arrange the Sentence</h1>
+    <div class="topBar">
+        <div class="score">⭐ Score: <span id="score">0</span>/10</div>
+        <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="wordBank" id="wordBank"></div>
+    
+    <h2 style="margin-bottom:10px;color:#4d6fa9;">Type the sentence here:</h2>
+    <input type="text" class="answerInput" id="answerInput" placeholder="အပေါ်က စာလုံးတွေကို ကြည့်ပြီး စာရိုက်ပါ..." autocomplete="off">
+
+    <div class="buttons">
+        <button class="check" onclick="checkAnswer()">✔ Check</button>
+        <button class="reset" onclick="resetGame()">↺ Reset</button>
+        <button class="next" onclick="nextQuestion()">➡ Next</button>
+    </div>
+</div>
+
+<script>
+const questions=[
+    { text: "I eat apples", done: false },
+    { text: "She likes cats", done: false },
+    { text: "We play football", done: false },
+    { text: "They read books", done: false },
+    { text: "He drinks milk", done: false },
+    { text: "You open the door", done: false },
+    { text: "The bird flies", done: false },
+    { text: "My dad cooks dinner", done: false },
+    { text: "The sun shines", done: false },
+    { text: "The baby smiles", done: false }
+];
+
+let currentQuestion=0;
+let score=0;
+
+const wordBank=document.getElementById("wordBank");
+const answerInput=document.getElementById("answerInput");
+const feedback=document.getElementById("feedback");
+
+let movingWords=[];
+
+function shuffle(arr){
+    return arr.sort(()=>Math.random()-0.5);
+}
+
+function loadQuestion(index){
+    feedback.textContent="";
+    wordBank.innerHTML="";
+    answerInput.value="";
+    movingWords=[];
+    
+    let words = shuffle([...questions[index].text.split(" ")]);
+
+    // Ensure dimensions are available before calculating positions
+    if (wordBank.clientWidth === 0 || wordBank.clientHeight === 0) return;
+
+    words.forEach(w=>{
+        const div=document.createElement("div");
+        div.className="word";
+        div.textContent=w;
+        wordBank.appendChild(div);
+
+        // precise dimension tracking
+        const w_width = div.offsetWidth;
+        const w_height = div.offsetHeight;
+
+        let x = Math.random() * (wordBank.clientWidth - (w_width > 100 ? w_width : 100));
+        let y = Math.random() * (wordBank.clientHeight - (w_height > 50 ? w_height : 50));
+        if (x < 10) x = 10; // margin safety
+        if (y < 10) y = 10;
+
+        div.style.left=x+"px";
+        div.style.top=y+"px";
+
+        const speed=1+Math.random()*1.5;
+
+        movingWords.push({
+            el:div,
+            x:x,
+            y:y,
+            vx:(Math.random()<0.5?-1:1)*speed,
+            vy:(Math.random()<0.5?-1:1)*speed,
+            moving:true
+        });
+    });
+}
+
+function animate(){
+    movingWords.forEach(obj=>{
+        if(!obj.moving) return;
+
+        obj.x+=obj.vx;
+        obj.y+=obj.vy;
+
+        // Use precise rendered dimensions
+        const w=obj.el.offsetWidth || 100;
+        const h=obj.el.offsetHeight || 45;
+
+        if(obj.x<=0){
+            obj.x = 0;
+            obj.vx*=-1;
+        } else if(obj.x+w>=wordBank.clientWidth){
+            obj.x = wordBank.clientWidth - w;
+            obj.vx*=-1;
+        }
+
+        if(obj.y<=0){
+            obj.y = 0;
+            obj.vy*=-1;
+        } else if(obj.y+h>=wordBank.clientHeight){
+            obj.y = wordBank.clientHeight - h;
+            obj.vy*=-1;
+        }
+
+        obj.el.style.left=obj.x+"px";
+        obj.el.style.top=obj.y+"px";
+    });
+
+    requestAnimationFrame(animate);
+}
+
+answerInput.addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        checkAnswer();
+    }
+});
+
+function checkAnswer(){
+    const userAnswer = answerInput.value.trim();
+
+    if(userAnswer.toLowerCase() === questions[currentQuestion].text.toLowerCase()){
+        feedback.textContent="🎉 Correct!";
+        feedback.style.color="#2e7d32";
+
+        if(!questions[currentQuestion].done){
+            score++;
+            questions[currentQuestion].done=true;
+            document.getElementById("score").textContent=score;
+        }
+    }else{
+        feedback.textContent="❌ Try Again";
+        feedback.style.color="#d32f2f";
+    }
+}
+
+function nextQuestion(){
+    if(currentQuestion < questions.length-1){
+        currentQuestion++;
+        loadQuestion(currentQuestion);
+    }else{
+        feedback.style.color="#4d6fa9";
+        feedback.textContent="🏆 Game Finished!";
+    }
+}
+
+function resetGame(){
+    score = 0;
+    currentQuestion = 0;
+    document.getElementById("score").textContent = score;
+    questions.forEach(q => q.done = false); 
+    loadQuestion(currentQuestion);
+}
+
+// ဖြေရှင်းချက်- Browser structure အကုန်ဖတ်ပြီးမှ load လုပ်ခိုင်းခြင်း
+window.onload = function() {
+    loadQuestion(currentQuestion);
+    animate();
+};
+</script>
+
+</body>
+</html>

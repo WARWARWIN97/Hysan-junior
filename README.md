@@ -1,2 +1,0 @@
-# Hysan-junior
-eng
